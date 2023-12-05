@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Editor, EditorState, RichUtils, getDefaultKeyBinding, convertToRaw,convertFromRaw,Modifier} from 'draft-js';
+import { Editor, EditorState, RichUtils, getDefaultKeyBinding, convertToRaw, CharacterList,convertFromRaw,Modifier ,genKey,BlockMapBuilder,ContentBlock} from 'draft-js';
 import 'draft-js/dist/Draft.css';
 
 
@@ -57,6 +57,7 @@ const MyEditor = () => {
   };
 
 const handleReturn = (e) => {
+    //works absolute fine
     if (e.key === 'Enter') {
       e.preventDefault();
   
@@ -81,8 +82,6 @@ const handleReturn = (e) => {
     }
     return 'not-handled';
   };
-
-
 
   const handleBeforeInput = (char) => {
     const selection = editorState.getSelection();
@@ -137,7 +136,6 @@ const handleReturn = (e) => {
             return 'handled';
           }   
       }
-
     return 'not-handled';
   };
 
