@@ -57,7 +57,7 @@ const MyEditor = () => {
   };
 
 const handleReturn = (e) => {
-    //works absolute fine
+    
     if (e.key === 'Enter') {
       e.preventDefault();
   

@@ -61,6 +61,7 @@
   transition: background-color 0.3s ease;
 }
 
+
 .editor-toolbar button:hover {
   background-color: #ddd;
 }
