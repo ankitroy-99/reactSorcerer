@@ -16,7 +16,6 @@ const MyEditor = () => {
 
   const handleKeyCommand = (command, state) => {
     const newState = RichUtils.handleKeyCommand(state, command);
-
     if (newState) {
       setEditorState(newState);
       return 'handled';
