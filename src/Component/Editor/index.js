@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Editor, EditorState, RichUtils, getDefaultKeyBinding, convertToRaw, CharacterList,convertFromRaw,Modifier ,genKey,BlockMapBuilder,ContentBlock} from 'draft-js';
+import { Editor, EditorState, RichUtils, getDefaultKeyBinding, convertToRaw, convertFromRaw, Modifier} from 'draft-js';
 import 'draft-js/dist/Draft.css';
+import {editorContent,handled,notHandled,codeBlock} from '../../Utils/Constant'
 
 
-const MyEditor = () => {
+export const TextEditor = () => {
   const [editorState, setEditorState] = useState(EditorState.createEmpty());
 
   useEffect(() => {
-    const savedContent = localStorage.getItem('editorContent');
+    const savedContent = localStorage.getItem(editorContent);
     if (savedContent) {
       const contentState = convertFromRaw(JSON.parse(savedContent));
       setEditorState(EditorState.createWithContent(contentState));
@@ -18,14 +19,14 @@ const MyEditor = () => {
     const newState = RichUtils.handleKeyCommand(state, command);
     if (newState) {
       setEditorState(newState);
-      return 'handled';
+      return handled;
     }
-    return 'not-handled';
+    return notHandled;
   };
 
   const keyBindingFn = (e) => {
     if (e.keyCode === 32 && e.shiftKey && e.altKey) {
-      return 'code-block';
+      return codeBlock;
     }
     return getDefaultKeyBinding(e);
   };
@@ -36,7 +37,7 @@ const MyEditor = () => {
 
   const handleSave = () => {
     const contentState = editorState.getCurrentContent();
-    localStorage.setItem('editorContent', JSON.stringify(convertToRaw(contentState)));
+    localStorage.setItem(editorContent, JSON.stringify(convertToRaw(contentState)));
   };
 
   const customStyleMap = {
@@ -65,7 +66,7 @@ const handleReturn = (e) => {
       const currentBlock = contentState.getBlockForKey(selectionState.getStartKey());
   
       // Check if the current block is empty or contains only whitespace
-      if (!currentBlock.getText().trim()) {
+      if (!currentBlock?.getText()?.trim()) {
         // If the current block is empty, insert a soft newline character
         const newContentState = Modifier.insertText(contentState, selectionState, '\n');
         const newState = EditorState.push(editorState, newContentState, 'insert-char');
@@ -77,65 +78,64 @@ const handleReturn = (e) => {
         setEditorState(EditorState.forceSelection(newState, newContentState.getSelectionAfter()));
       }
   
-      return 'handled';
+      return handled;
     }
-    return 'not-handled';
-  };
-
+    return notHandled;
+  }; 
   const handleBeforeInput = (char) => {
     const selection = editorState.getSelection();
     const content = editorState.getCurrentContent();
     const block = content.getBlockForKey(selection.getStartKey());
-    const blockType = block.getType();
     const blockText = block.getText();
-
-
+  
     if (char === '#') {
-        handleInputChange(
-          EditorState.push(
-            editorState,
-            Modifier.insertText(content, selection, '#', null, null),
-            'insert-char'
-          )
-        );
-        return 'handled';
-      }
-   
-      if (char === ' ') {
-        const trimmedText = blockText.trim();
-        const blockWithoutSpace = blockText.replace(/\s/g, ''); // Remove all spaces
-        if (trimmedText === '#' && blockWithoutSpace === '#') {
+      handleInputChange(
+        EditorState.push(
+          editorState,
+          Modifier.insertText(content, selection, '#', null, null),
+          'insert-char'
+        )
+      );
+      return 'handled';
+    }
+  
+    if (char === ' ') {
+      const trimmedText = blockText.trim();
+      //const blockWithoutSpace = blockText.replace(/\s/g, ''); // Remove all spaces
+  
+      switch (trimmedText) {
+        case '#':
           const newBlockText = trimmedText.substring(1); // Remove '#'
           const newContentState = Modifier.replaceText(content, selection.merge({ anchorOffset: 0 }), newBlockText);
           const newEditorState = EditorState.push(editorState, newContentState, 'remove-range');
           handleInputChange(RichUtils.toggleBlockType(newEditorState, 'header-one'));
-          return 'handled';
-        }
-
-        if (trimmedText === '*' && blockWithoutSpace === '*') {
-            const newBlockText = trimmedText.substring(1); // Remove '*'
-            const newContentState = Modifier.replaceText(content, selection.merge({ anchorOffset: 0 }), newBlockText);
-            const newEditorState = EditorState.push(editorState, newContentState, 'remove-range');
-            handleInputChange(RichUtils.toggleInlineStyle(newEditorState, 'BOLD'));
-            return 'handled';
-          }
-          if (trimmedText === '**' && blockWithoutSpace === '**') {
-            const newBlockText = trimmedText.substring(2); // Remove '**'
-            const newContentState = Modifier.replaceText(content, selection.merge({ anchorOffset: 0 }), newBlockText);
-            const newEditorState = EditorState.push(editorState, newContentState, 'remove-range');
-            handleInputChange(RichUtils.toggleInlineStyle(newEditorState, 'redText'));
-            return 'handled';
-          }
-          if (trimmedText === '***' && blockWithoutSpace === '***') {
-            const newBlockText = trimmedText.substring(3); // Remove '***'
-            const newContentState = Modifier.replaceText(content, selection.merge({ anchorOffset: 0 }), newBlockText);
-            const newEditorState = EditorState.push(editorState, newContentState, 'remove-range');
-            const newState = RichUtils.toggleInlineStyle(newEditorState, 'UNDERLINE');
-            handleInputChange(newState);
-            return 'handled';
-          }   
+          break;
+        case '*':
+          handleInlineStyleChange('BOLD', 1);
+          break;
+        case '**':
+          handleInlineStyleChange('redText', 2);
+          break;
+        case '***':
+          handleInlineStyleChange('UNDERLINE', 3);
+          break;
+        default:
+          // Handle other cases if needed
+          return 'not-handled';
       }
+  
+      return 'handled';
+    }
+  
     return 'not-handled';
+  
+    function handleInlineStyleChange(style, length) {
+      const trimmedText = blockText.trim(); // Declare trimmedText here
+      const newBlockText = trimmedText.substring(length); // Remove corresponding characters
+      const newContentState = Modifier.replaceText(content, selection.merge({ anchorOffset: 0 }), newBlockText);
+      const newEditorState = EditorState.push(editorState, newContentState, 'remove-range');
+      handleInputChange(RichUtils.toggleInlineStyle(newEditorState, style));
+    }
   };
 
   return (
@@ -157,4 +157,4 @@ const handleReturn = (e) => {
   );
 };
 
-export default MyEditor;
+
